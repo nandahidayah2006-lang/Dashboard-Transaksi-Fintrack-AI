@@ -1,53 +1,72 @@
-# 📊 Personal Financial Analysis Dashboard
+# 📊 FinSight: Dashboard Analisis Keuangan Pribadi
 
-## 📌 Project Description
-This project is a personal financial analysis system built using Python and Streamlit. The system analyzes user financial transaction data to identify spending behavior patterns and classify financial status into three categories:
-
-- Hemat (Saving)
+## 📌 Deskripsi Proyek
+Proyek ini adalah sistem analisis keuangan pribadi yang dibangun menggunakan Python dan Streamlit. Sistem ini menganalisis data transaksi keuangan pengguna untuk mengidentifikasi pola perilaku belanja dan mengklasifikasikan status keuangan ke dalam tiga kategori:
+- Hemat
 - Normal
-- Boros (High Spending)
+- Boros
 
-The dashboard also provides interactive visualizations to help users understand their income, expenses, and monthly spending trends.
-
----
-
-# 🎯 Project Objectives
-
-The objectives of this project are:
-
-- Analyze the contribution of spending categories toward financial status.
-- Compare total income and total expenses.
-- Analyze monthly spending trends over time.
-- Prepare a realistic financial dataset for machine learning and forecasting purposes.
-- Build an interactive dashboard visualization using Streamlit.
+Dashboard ini dirancang dengan standar visual aplikasi keuangan modern dan menyediakan visualisasi interaktif untuk membantu pengguna memahami pendapatan, pengeluaran, tren belanja bulanan, serta segmentasi perilaku mereka.
 
 ---
 
-# 🗂 Dataset Attributes
+## 🎯 Tujuan Proyek
+Tujuan dari proyek ini adalah:
+- Menganalisis kontribusi kategori pengeluaran terhadap status keuangan secara dinamis.
+- Membandingkan total pemasukan dan total pengeluaran tanpa penumpukan angka pada grafik.
+- Menganalisis tren pengeluaran bulanan dari waktu ke waktu untuk mendeteksi anomali musiman.
+- Menerapkan rekayasa fitur (*Feature Engineering*) dan segmentasi berbasis perilaku (*Clustering*).
+- Menyiapkan dataset keuangan yang realistis untuk kebutuhan pembelajaran mesin (*Machine Learning*) dan peramalan di masa depan.
+- Membangun dan meluncurkan (*deploy*) visualisasi dashboard interaktif menggunakan Streamlit Cloud.
 
-The dataset contains the following attributes:
+---
 
-| Attribute | Description |
+## 🧠 Rekayasa Fitur & Klaster Perilaku (Tugas Tambahan)
+Untuk meningkatkan nilai analisis dari dataset, dua teknik rekayasa fitur (*Feature Engineering*) telah diterapkan:
+1. **Ekstraksi Waktu:** Memecah kolom `tanggal` mentah menjadi fitur waktu mandiri yaitu `tahun` dan `bulan` untuk menggerakkan komponen filter interaktif pada panel samping secara real-time.
+2. **Klaster Perilaku Berbasis Aturan:** Merekayasa fitur baru bernama `klaster_finansial` untuk mengelompokkan transaksi ke dalam 3 domain perilaku utama:
+   * **Klaster 0: Pengeluaran Prioritas** (Kebutuhan pokok, operasional rutin, dan tagihan tetap).
+   * **Klaster 1: Pengeluaran Impulsif** (Keinginan, gaya hidup konsumtif, dan kebocoran anggaran tak terencana).
+   * **Klaster 2: Pengeluaran Masa Depan** (Alokasi tabungan, investasi jangka panjang, dan pos proteksi kekayaan).
+
+---
+
+## 🗂 Atribut Dataset
+Dataset ini mengandung beberapa atribut sebagai berikut:
+
+| Atribut | Deskripsi |
 |---|---|
-| tanggal | Transaction date |
-| bulan | Month of transaction |
-| nama_kategori | Transaction category code |
-| nama_kategori_label | Category name |
-| deskripsi | Transaction description |
-| tipe | Transaction type code |
-| tipe_label | Income / Expense |
-| saldo awal | Balance before transaction |
-| jumlah | Transaction amount |
-| saldo akhir | Balance after transaction |
-| status | Financial status code |
-| status_label | Financial status label |
-| prediksi_pengeluaran | Predicted expense value |
+| tanggal | Tanggal transaksi |
+| bulan | Bulan transaksi |
+| nama_kategori | Kode kategori transaksi |
+| nama_kategori_label | Nama kategori transaksi |
+| deskripsi | Deskripsi detail transaksi |
+| tipe | Kode tipe transaksi |
+| tipe_label | Tipe transaksi (Masuk / Keluar) |
+| saldo awal | Saldo sebelum transaksi |
+| jumlah | Nominal jumlah transaksi |
+| saldo akhir | Saldo setelah transaksi |
+| status | Kode status keuangan |
+| status_label | Label status keuangan (Hemat / Normal / Boros) |
+| prediksi_pengeluaran | Nilai prediksi pengeluaran |
+| klaster_finansial | Label klaster perilaku hasil rekayasa fitur *(Baru)* |
 
 ---
 
-# 🧠 Financial Status Logic
+## 🛠️ Persyaratan Sistem & Dependensi
+Pastikan Anda memiliki file `requirements.txt` di folder utama Anda. Pustaka Python yang dibutuhkan meliputi:
+* `streamlit`
+* `pandas`
+* `numpy`
+* `matplotlib`
+* `seaborn`
+* `openpyxl`
 
-Financial status is determined using the comparison between:
+---
 
-```python
-saldo_akhir / total_income_bulanan
+## 📂 Struktur Repositori
+```text
+├── dashboard.py                       # Kode utama aplikasi dashboard Streamlit
+├── requirements.txt                   # Daftar instalasi pustaka otomatis untuk server
+├── README.md                          # Dokumentasi lengkap proyek (File ini)
+└── DATASET_KEUANGAN_CLUSTERED.xlsx   # Basis data keuangan yang telah dilengkapi fitur klaster
