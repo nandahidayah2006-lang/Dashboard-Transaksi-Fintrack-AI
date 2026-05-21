@@ -9,8 +9,8 @@ import os
 # 1. KONFIGURASI HALAMAN & THEME PREMIUM (ALA ASISTEN KEUANGAN MODERN)
 # =========================================================================
 st.set_page_config(
-    page_title="FinSight - Personal Wealth Assistant",
-    page_icon="",
+    page_title="Fintrack AI",
+    page_icon="💎",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -69,25 +69,24 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================================
-# 2. OPTIMASI MEKANISME RETRIEVAL DATA (ANTI-GAGAL/ERROR)
+# 2. MEKANISME RETRIEVAL DATA KLASTER (MENGUTAMAKAN FILE TERBARU)
 # =========================================================================
 @st.cache_data
 def load_financial_data():
-    target_files = ["DATASET_KEUANGAN_UPDATED.xlsx", "DATASET_KEUANGAN_FINAL_FIXED.xlsx", "DATASET_KEUANGAN_FINAL_FIXED_TERBARU.csv"]
+    # Mengutamakan file hasil clustering yang baru Abang buat
+    target_files = ["DATASET_KEUANGAN_CLUSTERED.xlsx", "DATASET_KEUANGAN_UPDATED.xlsx", "DATASET_KEUANGAN_FINAL_FIXED.xlsx"]
     df = None
     
     for file_name in target_files:
         if os.path.exists(file_name):
             try:
-                if file_name.endswith('.xlsx'):
-                    df = pd.read_excel(file_name, engine="openpyxl")
-                else:
-                    df = pd.read_csv(file_name)
+                df = pd.read_excel(file_name, engine="openpyxl")
                 break
             except Exception:
                 continue
                 
     if df is None:
+        # Fallback dummy jika file tidak sengaja hilang
         dates = pd.date_range(start="2022-01-01", end="2026-12-31", freq="D")
         np.random.seed(42)
         dummy_data = {
@@ -102,6 +101,15 @@ def load_financial_data():
         df.loc[df['tipe_label'] == 'Uang Keluar', 'jumlah'] = np.random.randint(20000, 150000, size=len(df[df['tipe_label'] == 'Uang Keluar']))
         df['tipe'] = np.where(df['tipe_label'] == 'Uang Masuk', 0, 1)
 
+    # Memastikan kolom klaster ada (antitesis error)
+    if 'klaster_finansial' not in df.columns:
+        def tentukan_klaster(row):
+            kat = str(row['nama_kategori_label']).lower()
+            if 'kebutuhan' in kat or 'income' in kat: return 'Klaster 0: Pengeluaran Prioritas'
+            elif 'keinginan' in kat: return 'Klaster 1: Pengeluaran Impulsif'
+            else: return 'Klaster 2: Pengeluaran Masa Depan'
+        df['klaster_finansial'] = df.apply(tentukan_klaster, axis=1)
+
     df['tanggal'] = pd.to_datetime(df['tanggal'])
     df['tahun'] = df['tanggal'].dt.year
     df['bulan'] = df['tanggal'].dt.month
@@ -110,9 +118,9 @@ def load_financial_data():
 df_clean = load_financial_data()
 
 # =========================================================================
-# 3. SIDEBAR INTERAKTIF DENGAN KONTROL PENUH
+# 3. SIDEBAR INTERAKTIF KONTROL PERIODE
 # =========================================================================
-st.sidebar.title("FinSight Assistant")
+st.sidebar.title("Fintrack AI")
 st.sidebar.markdown("Kelola & Analisis Kesehatan Finansial Anda secara Real-Time.")
 st.sidebar.markdown("---")
 
@@ -136,24 +144,28 @@ df_active = df_clean[
     (df_clean['bulan'] <= selected_months[1])
 ]
 
-# Palet warna asisten fintech premium
-THEME_COLORS = ['#E8A0A2', '#A1D6B4', '#99B7F9', '#F4D793', '#C6A5EC']
+# Palet warna asisten keuangan premium
+THEME_COLORS = ['#A1D6B4', '#E8A0A2', '#99B7F9', '#F4D793', '#C6A5EC']
 COLOR_INCOME = '#10B981'   # Emerald Green
 COLOR_EXPENSE = '#EF4444'  # Coral Red
 
+# Warna khusus Klaster tugas tambahan
+CLUSTER_COLORS = {
+    'Klaster 0: Pengeluaran Prioritas': '#0284C7',  # Biru Stabilitas
+    'Klaster 1: Pengeluaran Impulsif': '#EF4444',   # Merah Peringatan
+    'Klaster 2: Pengeluaran Masa Depan': '#10B981'  # Hijau Pertumbuhan
+}
+
 # =========================================================================
-# 4. MAIN CONTAINER / HEADER UTAMA
+# 4. HEADER UTAMA & KPI KARTU METRIK
 # =========================================================================
-st.title(" FinSight: Personal Financial Wealth Assistant")
+st.title(" Fintrack AI")
 st.markdown("Analisis komprehensif perilaku belanja, efisiensi kas, dan tren anomali musiman.")
 
 if df_active.empty:
     st.warning("⚠️ Tidak ditemukan transaksi pada filter yang Anda pilih. Silakan sesuaikan kembali filter di panel samping.")
     st.stop()
 
-# =========================================================================
-# 5. BANNER METRIK UTAMA (SUMMARY KPI CARDS)
-# =========================================================================
 income_pool = df_active[(df_active['tipe_label'] == 'Uang Masuk') | (df_active['tipe'] == 0)]['jumlah'].sum()
 expense_pool = df_active[(df_active['tipe_label'] == 'Uang Keluar') | (df_active['tipe'] == 1)]['jumlah'].sum()
 net_saving = income_pool - expense_pool
@@ -174,28 +186,23 @@ with m_col4:
 st.markdown("---")
 
 # =========================================================================
-# 6. LAYOUT STRUKTUR TAB UNTUK MENJAWAB 3 PERTANYAAN UTAMA (INTERAKTIF)
+# 5. LAYOUT STRUKTUR TAB JAWABAN + TUGAS TAMBAHAN KLASTER
 # =========================================================================
-tab_q1, tab_q2, tab_q3 = st.tabs([
-    "🎯 Q1: Analisis Bocor Finansial ('Boros')",
+tab_q1, tab_q2, tab_q3, tab_cluster = st.tabs([
+    "🎯 Q1: Analisis Bocor Finansial",
     "⚖️ Q2: Efisiensi Arus Kas Makro",
-    "📉 Q3: Pola Tren Akhir Tahun & Solusi"
+    "📉 Q3: Pola Tren Akhir Tahun",
+    "🤖 Tugas Tambahan: Segmentasi Klaster Finansial"
 ])
 
-# MATPLOTLIB SETUP GLOBAL
 sns.set_theme(style="whitegrid")
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['figure.dpi'] = 120
 
-# --- TAB 1: KATEGORI PENGELUARAN SAAT BOROS ---
+# --- TAB 1 ---
 with tab_q1:
     st.header("🎯 Analisis Struktur Pengeluaran Saat Kondisi 'Boros'")
-    st.markdown("Mengidentifikasi ke mana perginya uang kas Anda saat rasio bulanan mendeteksi status keuangan kritis.")
-    
-    df_boros_active = df_active[
-        (df_active['status_label'] == 'Boros') & 
-        ((df_active['tipe_label'] == 'Uang Keluar') | (df_active['tipe'] == 1))
-    ]
+    df_boros_active = df_active[(df_active['status_label'] == 'Boros') & ((df_active['tipe_label'] == 'Uang Keluar') | (df_active['tipe'] == 1))]
     
     if not df_boros_active.empty:
         c1, c2 = st.columns([1.2, 1])
@@ -204,167 +211,163 @@ with tab_q1:
             fig_q1, ax_q1 = plt.subplots(figsize=(6, 5))
             fig_q1.patch.set_facecolor('#F8FAFC')
             ax_q1.set_facecolor('#F8FAFC')
-            
-            wedges, texts, autotexts = ax_q1.pie(
-                category_group['jumlah'],
-                labels=category_group['nama_kategori_label'],
-                autopct='%1.2f%%',
-                startangle=140,
-                colors=THEME_COLORS[:len(category_group)],
-                textprops={'fontsize': 11, 'color': '#1E293B', 'weight': 'bold'},
-                wedgeprops={'edgecolor': '#F8FAFC', 'linewidth': 3, 'antialiased': True}
-            )
-            plt.setp(autotexts, size=10, weight="bold")
-            ax_q1.set_title("Proporsi Alokasi Dana Saat Rekor Finansial 'Boros'", fontsize=12, weight='bold', color='#0F172A', pad=15)
+            ax_q1.pie(category_group['jumlah'], labels=category_group['nama_kategori_label'], autopct='%1.2f%%', startangle=140, colors=THEME_COLORS, textprops={'fontsize': 11, 'weight': 'bold'}, wedgeprops={'edgecolor': '#F8FAFC', 'linewidth': 3})
+            ax_q1.set_title("Proporsi Alokasi Dana Saat Rekor Finansial 'Boros'", fontsize=12, weight='bold', pad=15)
             st.pyplot(fig_q1)
             
         with c2:
-            st.subheader("💡 Pendamping Finansial AI Insight - Q1")
+            st.subheader("💡 AI Insight")
+            
+            # --- LOGIKA SAKTI UTK INSIGHT DINAMIS BERDASARKAN FILTER Bulanan/Tahunan ---
+            total_dana_boros = category_group['jumlah'].sum()
+            # Mencari baris data kategori yang nominal pengeluarannya paling besar saat itu
+            top_category_row = category_group.loc[category_group['jumlah'].idxmax()]
+            
+            top_nama_kategori = top_category_row['nama_kategori_label']
+            top_nominal = top_category_row['jumlah']
+            # Hitung persentase real-time sesuai filter
+            top_persentase = (top_nominal / total_dana_boros) * 100
+            
+            # Memunculkan teks pintar yang otomatis berubah isinya sesuai pergerakan filter
             st.markdown(f"""
             <div class="insight-box">
-                <b>Deteksi Kebocoran Terbesar:</b> Kategori <b>Keinginan (Lifestyle)</b> mendominasi struktur pengeluaran Anda sebesar <b>62.45%</b> saat berada di posisi boros.
+                Kategori <b>{top_nama_kategori}</b> mendominasi struktur pengeluaran sebesar 
+                <b>{top_persentase:.2f}%</b> saat kondisi boros pada periode filter yang Anda pilih.
             </div>
             """, unsafe_allow_html=True)
-            st.info("""
-            **Analisis Perilaku:** Ketika kontrol pengeluaran harian kendor, dana terserap masif oleh kebutuhan tersier seperti hiburan dan hobi. Dampaknya, hak anggaran untuk **Tabungan tertekan drastis hingga tersisa 9.45% saja**. Anda disarankan melakukan pembatasan (*budget cap*) sekunder sekarang juga.
-            """)
+            
+            # Menampilkan tabel data pendukung
             category_group['Nominal'] = category_group['jumlah'].apply(lambda x: f"Rp {x:,.0f}")
-            st.dataframe(category_group[['nama_kategori_label', 'Nominal']].rename(columns={'nama_kategori_label':'Kategori'}), use_container_width=True)
+            st.dataframe(category_group[['nama_kategori_label', 'Nominal']], use_container_width=True)
     else:
-        st.success("🎉 Luar biasa! Berdasarkan filter saat ini, sistem tidak mendeteksi adanya rekam jejak status 'Boros'. Pertahankan performa ini!")
+        st.success("🎉 Luar biasa! Tidak dideteksi status keuangan 'Boros' pada filter periode ini.")
 
-# --- TAB 2: PERBANDINGAN ARUS KAS MAKRO ---
-# --- TAB 2: PERBANDINGAN ARUS KAS MAKRO ---
-# --- TAB 2: PERBANDINGAN ARUS KAS MAKRO ---
+# --- TAB 2 (BEBAS ERROR ANGKA 0) ---
 with tab_q2:
     st.header("⚖️ Evaluasi Efisiensi Arus Kas Makro Agregat")
-    st.markdown("Komparasi total volume masuk vs keluar untuk mengukur ketahanan finansial jangka panjang.")
-    
     c1, c2 = st.columns([1.5, 1])
     with c1:
-        cashflow_summary = df_active.groupby('tipe_label')['jumlah'].sum().reset_index()
-        cashflow_summary = cashflow_summary.sort_values(by='jumlah', ascending=False)
-        
+        cashflow_summary = df_active.groupby('tipe_label')['jumlah'].sum().reset_index().sort_values(by='jumlah', ascending=False)
         fig_q2, ax_q2 = plt.subplots(figsize=(7, 3.5))
         fig_q2.patch.set_facecolor('#F8FAFC')
         ax_q2.set_facecolor('#F8FAFC')
+        sns.barplot(y='tipe_label', x='jumlah', data=cashflow_summary, palette=[COLOR_INCOME, COLOR_EXPENSE], orient='h', ax=ax_q2, edgecolor='none')
         
-        # Gambar barplot terlebih dahulu
-        sns.barplot(
-            y='tipe_label',
-            x='jumlah',
-            data=cashflow_summary,
-            palette=[COLOR_INCOME, COLOR_EXPENSE] if cashflow_summary['tipe_label'].iloc[0] == 'Uang Masuk' else [COLOR_EXPENSE, COLOR_INCOME],
-            orient='h',
-            ax=ax_q2,
-            edgecolor='none'
-        )
-        
-        # --- SAKTI & FIX UTAMA (DITARUH DI BAWAH BARPLOT AGAR TIDAK KETIMPA) ---
-        ax_q2.set_yticks([])            # Menghapus semua tick sumbu Y bawaan
-        ax_q2.set_yticklabels([])       # Menghapus semua teks/angka di sumbu Y
-        ax_q2.yaxis.grid(False)         # Menghapus garis grid sumbu Y biar makin clean
+        ax_q2.set_xticks([])
+        ax_q2.set_xticklabels([])
+        ax_q2.xaxis.grid(False)
+        ax_q2.tick_params(axis='y', which='both', length=0, labelsize=11, labelcolor='#1E293B')
+        ax_q2.yaxis.grid(False)
         
         max_v = cashflow_summary['jumlah'].max()
         ax_q2.set_xlim(0, max_v * 1.4)
-        
         for p in ax_q2.patches:
             val = p.get_width()
             if val > 0:
-                ax_q2.annotate(
-                    f'  Rp {val:,.0f}',
-                    (val, p.get_y() + p.get_height() / 2.),
-                    va='center', ha='left', fontsize=10, weight='bold', color='#1E293B'
-                )
-            
+                ax_q2.annotate(f'  Rp {val:,.0f}', (val, p.get_y() + p.get_height() / 2.), va='center', ha='left', fontsize=10, weight='bold', color='#1E293B')
         ax_q2.set_xlabel("Volume Likuiditas (Rupiah)", fontsize=9, weight='bold', color='#475569')
         ax_q2.set_ylabel("", fontsize=9)
-        
-        sns.despine(left=True, bottom=False)
+        sns.despine(left=True, bottom=True)
         st.pyplot(fig_q2)
-        
     with c2:
-        st.subheader("💡 Pendamping Finansial AI Insight - Q2")
-        st.markdown(f"""
-        <div class="insight-box" style="background-color: #FFFBEB; border-left-color: #D97706; color: #92400E;">
-            <b>Indeks Burn Rate Kritis:</b> Akumulasi pengeluaran Anda menyerap <b>{burn_rate_index:.2f}%</b> dari total pendapatan bruto sepanjang periode ini.
-        </div>
-        """, unsafe_allow_html=True)
-        st.warning(f"""
-        **Skor Kesehatan Finansial:** **Zona Risiko Tinggi (Lampu Kuning)**. Sisa ruang aman atau bantalan finansial bersih (*financial cushion*) Anda hanya sebesar **{(100 - burn_rate_index):.2f}%**. 
-        Sangat riskan terhadap guncangan darurat medis atau inflasi berkala karena ketiadaan dana cadangan likuid yang mencukupi.
-        """)
+        st.subheader("💡 AI Insight")
+        st.markdown(f'<div class="insight-box" style="background-color: #FFFBEB; border-left-color: #D97706; color: #92400E;">Burn Rate Anda mencapai <b>{burn_rate_index:.2f}%</b> dari total pendapatan bruto.</div>', unsafe_allow_html=True)
 
-# --- TAB 3: TREN BULANAN AKHIR TAHUN ---
+# --- TAB 3 ---
 with tab_q3:
     st.header("季 Analisis Tren Siklus Konstan Akhir Tahun")
-    st.markdown("Mendeteksi apakah terjadi anomali pembengkakan pengeluaran setiap memasuki kuartal ke-4.")
-    
-    df_expenses_only = df_active[
-        (df_active['tipe_label'] == 'Uang Keluar') | (df_active['tipe'] == 1)
-    ].copy()
-    
+    df_expenses_only = df_active[(df_active['tipe_label'] == 'Uang Keluar') | (df_active['tipe'] == 1)].copy()
     if not df_expenses_only.empty:
         monthly_trend = df_expenses_only.groupby(['tahun', 'bulan'])['jumlah'].sum().reset_index()
         pivot_trend = monthly_trend.pivot(index='bulan', columns='tahun', values='jumlah')
-        
         fig_q3, ax_q3 = plt.subplots(figsize=(11, 4.2))
         fig_q3.patch.set_facecolor('#F8FAFC')
         ax_q3.set_facecolor('#F8FAFC')
-        
         for idx, current_year in enumerate(pivot_trend.columns):
-            line_color = THEME_COLORS[idx % len(THEME_COLORS)]
-            ax_q3.plot(
-                pivot_trend.index,
-                pivot_trend[current_year],
-                marker='o',
-                markersize=6,
-                linewidth=2.5,
-                color=line_color,
-                label=f"Tahun {current_year}"
-            )
-            
-        ax_q3.set_xlabel("Bulan Distribusi", fontsize=10, weight='bold', color='#475569')
-        ax_q3.set_ylabel("Total Pengeluaran (Rp)", fontsize=10, weight='bold', color='#475569')
-        
+            ax_q3.plot(pivot_trend.index, pivot_trend[current_year], marker='o', markersize=6, linewidth=2.5, label=f"Tahun {current_year}")
+        ax_q3.set_xlabel("Bulan Distribusi", fontsize=10, weight='bold')
+        ax_q3.set_ylabel("Total Pengeluaran (Rp)", fontsize=10, weight='bold')
         month_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
         active_ticks = list(range(selected_months[0], selected_months[1] + 1))
-        active_labels = [month_labels[i-1] for i in active_ticks]
-        
         ax_q3.set_xticks(active_ticks)
-        ax_q3.set_xticklabels(active_labels)
-        ax_q3.legend(loc='upper right', frameon=True, facecolor='white', edgecolor='#E2E8F0')
+        ax_q3.set_xticklabels([month_labels[i-1] for i in active_ticks])
+        ax_q3.legend(loc='upper right')
         st.pyplot(fig_q3)
+
+# --- 🔥 TAB NEW 4: SEGMENTASI KLASTER FINANSIAL (TUGAS TAMBAHAN) ---
+with tab_cluster:
+    st.header("🤖 Segmentasi Karakteristik Finansial Berbasis Klaster")
+    st.markdown("Mengelompokkan transaksi keuangan ke dalam 3 klaster perilaku utama sesuai dengan arahan tugas tambahan.")
+    
+    # Kelompokkan total nominal pengeluaran per klaster
+    df_out_only = df_active[(df_active['tipe_label'] == 'Uang Keluar') | (df_active['tipe'] == 1)]
+    cluster_summary = df_out_only.groupby('klaster_finansial')['jumlah'].sum().reset_index()
+    
+    col_c1, col_c2 = st.columns([1.4, 1])
+    
+    with col_c1:
+        # Membuat Donut Chart Premium untuk visualisasi Klaster (ANTI-TABRAKAN)
+        fig_cl, ax_cl = plt.subplots(figsize=(6, 4.8))
+        fig_cl.patch.set_facecolor('#F8FAFC')
+        ax_cl.set_facecolor('#F8FAFC')
         
-        st.markdown("---")
-        st.subheader("🛠️ Strategi Efisiensi & Rekomendasi Asisten Finansial")
+        # Mapping warna dinamis berdasarkan nama klaster
+        colors_mapped = [CLUSTER_COLORS.get(name, '#CBD5E1') for name in cluster_summary['klaster_finansial']]
         
-        sec1, sec2 = st.columns(2)
-        with sec1:
-            st.markdown("""
-            **Kesimpulan Analisis Tren:**
-            * Rata-rata pengeluaran reguler (Jan-Nov): **Rp 13.844.757**
-            * Rata-rata pengeluaran Desember: **Rp 13.859.600**
-            * *Insight:* Tidak ada anomali lonjakan musiman akhir tahun yang drastis. Masalah keuangan Anda murni akibat beban biaya hidup harian (*baseline spending*) yang konstan terlalu tinggi sepanjang tahun mendekati plafon gaji bulanan.
-            """)
-        with sec2:
-            st.markdown("""
-            **Aksi Efisiensi yang Direkomendasikan:**
-            1. 🔐 **Auto-Debet Investasi 15%:** Aktifkan pemotongan otomatis tepat setiap tanggal 1 saat gajian masuk untuk mengunci tabungan aman di awal.
-            2. 📊 **Restrukturisasi Baseline Spending:** Kurangi pengeluaran harian tetap via substitusi menu makanan atau langganan non-esensial.
-            3. 🏖️ **Sinking Fund Akhir Tahun:** Sisihkan dana terpisah Rp 500.000/bulan sejak Januari untuk mengantisipasi agenda tukar kado/libur Desember tanpa mengganggu kas utama.
-            """)
-    else:
-        st.info("💡 Data transaksi pengeluaran tidak ditemukan untuk memetakan grafik garis tren bulanan.")
+        # FIX UTAMA: Hapus labels=... agar teks panjang tidak merusak lingkaran, ganti pakai legend
+        wedges, texts, autotexts = ax_cl.pie(
+            cluster_summary['jumlah'],
+            labels=None,                     # SAKTI: Menghilangkan teks label luar yang bikin berantakan
+            autopct='%1.1f%%',
+            startangle=140,                  
+            pctdistance=0.75,                # Angka persentase pas di tengah warna kue
+            colors=colors_mapped,
+            wedgeprops=dict(width=0.4, edgecolor='#F8FAFC', linewidth=3) # Lebar donut chart
+        )
+        
+        # Mengatur teks angka persentase di dalam warna kue agar kontras cerah
+        for autotext in autotexts:
+            autotext.set_color('white')      
+            autotext.set_fontsize(10)
+            autotext.set_weight('bold')
+            
+        # FIX KEDUA: Menampilkan kotak keterangan (Legend) rapi di bagian bawah chart
+        ax_cl.legend(
+            wedges, 
+            cluster_summary['klaster_finansial'],
+            title="Kategori Klaster",
+            title_fontsize=9,
+            loc="lower center",              # Ditaruh di bawah tengah agar simetris
+            bbox_to_anchor=(0.5, -0.15),     # Mengatur posisi posisi kotak agar tidak menempel lingkaran
+            fontsize=9,
+            frameon=True,
+            facecolor='#FFFFFF',
+            edgecolor='#E2E8F0'
+        )
+            
+        ax_cl.set_title("Distribusi Volume Alokasi Dana per Klaster Perilaku", fontsize=11, weight='bold', color='#0F172A', pad=10)
+        st.pyplot(fig_cl)
+        
+    with col_c2:
+        st.subheader("📋 Ringkasan Profil Segmentasi Klaster")
+        st.markdown("""
+        Berikut adalah karakteristik dari masing-masing segmen klaster finansial:
+        - 🔵 **Klaster 0: Pengeluaran Prioritas** -> Kebutuhan primer wajib, operasional hidup dasar, dan tagihan tetap.
+        - 🔴 **Klaster 1: Pengeluaran Impulsif** -> Keinginan, hobi, jajan konsumtif, dan pemborosan kas tak terencana.
+        - 🟢 **Klaster 2: Pengeluaran Masa Depan** -> Alokasi tabungan, investasi jangka panjang, dan pos proteksi kekayaan.
+        """)
+        
+        # Tampilkan tabel nominal rupiah per klaster
+        cluster_summary['Total Nominal'] = cluster_summary['jumlah'].apply(lambda x: f"Rp {x:,.0f}")
+        st.dataframe(
+            cluster_summary[['klaster_finansial', 'Total Nominal']].rename(columns={'klaster_finansial': 'Segmen Klaster'}),
+            use_container_width=True,
+            hide_index=True
+        )
 
 # =========================================================================
-# 7. FOOTER TABLE EXPLORER
+# 6. FOOTER TABLE EXPLORER
 # =========================================================================
 st.markdown("---")
 with st.expander("🔍 Pratinjau & Eksplorasi Data Transaksi Mentah Terfilter"):
-    st.dataframe(
-        df_active[['tanggal', 'tipe_label', 'nama_kategori_label', 'jumlah', 'status_label']].rename(
-            columns={'tipe_label': 'Arus Kas', 'nama_kategori_label': 'Kategori', 'jumlah':'Nominal', 'status_label': 'Status Finansial'}
-        ),
-        use_container_width=True
-    )
+    st.dataframe(df_active[['tanggal', 'tipe_label', 'nama_kategori_label', 'jumlah', 'status_label', 'klaster_finansial']], use_container_width=True)
